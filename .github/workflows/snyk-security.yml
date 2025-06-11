@@ -43,11 +43,8 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      #- name: Snyk Code test (SARIF)
-      #  run: |
-      #    snyk code test \
-      #      --sarif-file=snyk-code.sarif \
-      #      --fail-on=none
+      - name: Snyk Code test (SARIF)
+        run: snyk code test --sarif
 
       #- name: Upload Snyk Code SARIF to GitHub Security
       #  uses: github/codeql-action/upload-sarif@v3
