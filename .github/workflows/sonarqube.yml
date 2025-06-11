@@ -2,47 +2,55 @@ name: SonarQube
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
-  security-events: write # needed to upload SARIF results
+  security-events: write
 
 jobs:
-  build:
-    name: Build and analyze
+  sonar:
+    name: Analyze with SonarQube
     runs-on: ubuntu-latest
     env:
-      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
+      BUILD_WRAPPER_OUT_DIR: bw-output
       SARIF_OUTPUT: sonar-report.sarif
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Disable shallow clone for proper analysis
+          fetch-depth: 0
 
       - name: Install Build Wrapper
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v5
 
-      - name: Run Build Wrapper
+      - name: Build with Build Wrapper
         run: |
           mkdir -p ${{ env.BUILD_WRAPPER_OUT_DIR }}
           build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} gcc -c main.c
 
-      - name: Run SonarQube Scan
+      - name: Run SonarQube Scanner
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
-            --define sonar.sarifReportPath=${{ env.SARIF_OUTPUT }}
+            -Dsonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
+            -Dsonar.sarifReportPath=${{ env.SARIF_OUTPUT }}
 
-      - name: Upload SARIF to GitHub Code Scanning
+      - name: Verify SARIF output exists
+        run: |
+          echo "Workspace contents:"
+          ls -lh
+          echo "SARIF contents:"
+          cat ${{ env.SARIF_OUTPUT }} || echo "SARIF file missing!"
+
+      - name: Upload SARIF to GitHub
+        if: success() && hashFiles(env.SARIF_OUTPUT) != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ env.SARIF_OUTPUT }}
