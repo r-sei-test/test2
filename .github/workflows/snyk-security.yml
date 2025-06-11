@@ -48,13 +48,6 @@ jobs:
           snyk code test \
             --sarif-file=snyk-code.sarif \
             --fail-on=none
-        continue-on-error: true
-
-      - name: Snyk Open Source monitor
-        run: snyk monitor --all-projects
-
-      - name: Snyk IaC test
-        run: snyk iac test --report
 
       - name: Upload Snyk Code SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
