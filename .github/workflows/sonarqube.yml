@@ -1,9 +1,15 @@
 name: SonarQube
+
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
     types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  security-events: write # needed to upload SARIF results
 
 jobs:
   build:
@@ -11,27 +17,32 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
+      SARIF_OUTPUT: sonar-report.sarif
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Disable shallow clone for proper analysis
 
       - name: Install Build Wrapper
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v5
 
-      - name: Create build directory
-        run: mkdir -p build
-
-      - name: Run Build Wrapper (compile main.c)
+      - name: Run Build Wrapper
         run: |
-          build-wrapper-linux-x86-64 --out-dir $BUILD_WRAPPER_OUT_DIR gcc -c main.c -o build/main.o
+          mkdir -p ${{ env.BUILD_WRAPPER_OUT_DIR }}
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} gcc -c main.c
 
       - name: Run SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}  # e.g., https://sonar.mycompany.com
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            --define sonar.cfamily.build-wrapper-output=$BUILD_WRAPPER_OUT_DIR
+            --define sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}
+            --define sonar.sarifReportPath=${{ env.SARIF_OUTPUT }}
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.SARIF_OUTPUT }}
