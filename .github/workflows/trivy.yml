@@ -24,31 +24,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # — Optional: install Python deps for library vuln scanning —
-      - name: Set up Python (if you have requirements.txt)
+      - name: Set up Python (optional)
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
-      - name: Install dependencies
-        if: fileExists('requirements.txt')
+      - name: Install dependencies if present
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            python -m venv .venv
+            source .venv/bin/activate
+            pip install -r requirements.txt
+          fi
 
-      - name: Run Trivy (vuln, IaC & secrets)
+      - name: Run Trivy (vuln, IaC & secret)
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'                           # scan repo root
-          scanners: 'vuln,config,iac,secret'      # enable all scanners
-          format: 'template'
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,config,iac,secret
+          format: template
           template: '@/contrib/sarif.tpl'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'        # tune as needed
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH,MEDIUM
 
       - name: Upload Trivy SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: trivy-results.sarif
+        if: always()
