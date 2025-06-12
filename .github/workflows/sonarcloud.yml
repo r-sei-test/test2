@@ -1,0 +1,42 @@
+name: SonarCloud analysis
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  pull-requests: read
+
+jobs:
+  Analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run Trivy scan
+        run: |
+          mkdir -p reports
+          trivy fs --format sarif --output reports/trivy.sarif .
+
+      - name: Run Semgrep scan
+        uses: returntocorp/semgrep-action@v2
+        with:
+          format: sarif
+          output: reports/semgrep.sarif
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@4006f663ecaf1f8093e8e4abb9227f6041f52216
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.login=${{ env.SONAR_TOKEN }}
+            -Dsonar.projectKey=<your_project_key>
+            -Dsonar.organization=<your_org_key>
+            -Dsonar.sarifReportPaths=reports/trivy.sarif,reports/semgrep.sarif
