@@ -9,7 +9,7 @@ on:
 
 permissions:
   pull-requests: read
-  security-events: write   # required for code-scanning uploads
+  security-events: write
 
 jobs:
   Analysis:
@@ -19,13 +19,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Prepare reports directory
+        run: mkdir -p reports
+
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           format: sarif
           output: reports/trivy.sarif
-          exit-code: 0           # never fail the job on findings :contentReference[oaicite:0]{index=0}
+          exit-code: 0
 
       - name: Install Semgrep CLI
         uses: actions/setup-python@v4
@@ -33,13 +36,10 @@ jobs:
           python-version: '3.x'
 
       - name: Install Semgrep
-        run: |
-          python3 -m pip install --upgrade semgrep
+        run: python3 -m pip install --upgrade semgrep
 
       - name: Run Semgrep scan
-        run: |
-          mkdir -p reports
-          semgrep --config p/ci --sarif --output reports/semgrep.sarif .
+        run: semgrep --config p/ci --sarif --output reports/semgrep.sarif .
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@4006f663ecaf1f8093e8e4abb9227f6041f52216
@@ -49,6 +49,4 @@ jobs:
           projectBaseDir: .
           args: >
             -Dsonar.login=${{ env.SONAR_TOKEN }}
-            -Dsonar.projectKey=<your_project_key>
-            -Dsonar.organization=<your_org_key>
             -Dsonar.sarifReportPaths=reports/trivy.sarif,reports/semgrep.sarif
