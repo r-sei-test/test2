@@ -19,17 +19,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Prepare workspace
+      - name: Prepare reports & compile_commands.json
         run: |
           mkdir -p reports
-          # Generate compile_commands.json for single main.c
-          cat > compile_commands.json <<EOF
-          [{
-            "directory": "$(pwd)",
-            "command": "gcc -std=c17 -I. -O2 -g main.c -o main",
-            "file": "main.c"
-          }]
-          EOF
+          echo '[
+            {
+              "directory": "'"$PWD"'",
+              "command": "gcc -std=c17 -I. -O2 -g main.c -o main",
+              "file": "main.c"
+            }
+          ]' > compile_commands.json
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@master
@@ -58,5 +57,7 @@ jobs:
           projectBaseDir: .
           args: >
             -Dsonar.login=${{ env.SONAR_TOKEN }}
+            -Dsonar.projectKey=<your_project_key>
+            -Dsonar.organization=<your_org_key>
             -Dsonar.sarifReportPaths=reports/trivy.sarif,reports/semgrep.sarif
             -Dsonar.cfamily.compile-commands=compile_commands.json
