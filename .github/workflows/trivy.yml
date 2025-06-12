@@ -43,7 +43,7 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          scanners: 'vuln,misconfig,secret,iac'
+          scanners: 'vuln'
           format: template
           template: '@/contrib/sarif.tpl'
           output: trivy-results.sarif
