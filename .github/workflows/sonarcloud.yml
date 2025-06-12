@@ -19,18 +19,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Prepare reports & compile_commands.json
+      - name: Prepare reports directory and compile_commands.json
         run: |
           mkdir -p reports
-          cat <<EOF > compile_commands.json
-          [
-            {
-              "directory": "${PWD}",
-              "command": "gcc -std=c17 -I. -O2 -g main.c -o main",
-              "file": "main.c"
-            }
-          ]
-          EOF
+          # Build a minimal compile_commands.json for main.c
+          echo '[' > compile_commands.json
+          echo '  { "directory": "'"${PWD}"'", "command": "gcc -std=c17 -I. -O2 -g main.c -o main", "file": "main.c" }' >> compile_commands.json
+          echo ']' >> compile_commands.json
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@master
