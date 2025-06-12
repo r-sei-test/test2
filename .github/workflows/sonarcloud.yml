@@ -23,11 +23,16 @@ jobs:
           mkdir -p reports
           trivy fs --format sarif --output reports/trivy.sarif .
 
-      - name: Run Semgrep scan
-        uses: returntocorp/semgrep-action@v2
+      - name: Install Semgrep CLI
+        uses: actions/setup-python@v4
         with:
-          format: sarif
-          output: reports/semgrep.sarif
+          python-version: '3.x'
+
+      - name: Install Semgrep
+        run: python3 -m pip install semgrep   # installs latest Semgrep CLI :contentReference[oaicite:0]{index=0}
+
+      - name: Run Semgrep scan
+        run: semgrep --config p/ci --sarif --output reports/semgrep.sarif .   # use your chosen config
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@4006f663ecaf1f8093e8e4abb9227f6041f52216
@@ -37,6 +42,4 @@ jobs:
           projectBaseDir: .
           args: >
             -Dsonar.login=${{ env.SONAR_TOKEN }}
-            -Dsonar.projectKey=<your_project_key>
-            -Dsonar.organization=<your_org_key>
             -Dsonar.sarifReportPaths=reports/trivy.sarif,reports/semgrep.sarif
